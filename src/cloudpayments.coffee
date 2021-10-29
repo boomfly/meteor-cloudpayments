@@ -52,7 +52,9 @@ Meteor.startup ->
       else
         params = {}
 
-      # pg_sig = PGSignature.make("#{config.callbackScriptName}?action=#{params.action}", params, config.secretKey);
+      # payload = JSON.stringify(params)
+      # signature = PGSignature.make payload, config.secretKey
+      # console.log signature, payload, @request.headers, @request.body
 
       # if pg_sig isnt params.pg_sig
       #   console.log 'Cloudpayments.restRoute invalid signature', pg_sig
@@ -69,7 +71,7 @@ Meteor.startup ->
           response = Cloudpayments._onFail?(params)
         else
           # Payment will be refunded
-          response = {code: 20}
+          response = {code: 0}
 
       unless response
         response = {code: 20}
@@ -78,3 +80,16 @@ Meteor.startup ->
         console.log 'Cloudpayments.restRoute.response', response
 
       response
+
+# WebApp.connectHandlers.use "/api/#{config.callbackScriptName}", (req, res, next) ->
+#   method = req.method
+
+#   if method is 'POST'
+#     chunksLength = 0
+#     chunks = []
+#     body = await new Promise (resolve, reject) ->
+#       req.on 'data', (chunk) ->
+#         chunks.push(chunk)
+#         chunksLength += chunk.length
+#       req.on 'end', -> resolve Buffer.concat(chunks, chunksLength).toString('utf-8')
+#       req.on 'error', reject
