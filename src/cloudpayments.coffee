@@ -1,9 +1,11 @@
 import { Meteor } from 'meteor/meteor'
+import { WebApp } from 'meteor/webapp'
 import { Random } from 'meteor/random'
 import { check, Match } from 'meteor/check'
-import { HTTP } from 'meteor/http'
+import qs from 'qs'
+import Url from 'url'
 
-import PGSignature from './signature'
+import Signature from './signature'
 import config from './config'
 import CloudpaymentsApi from './api'
 
@@ -35,61 +37,78 @@ export default class Cloudpayments
 
 # Маршруты для обработки REST запросов от Cloudpayments
 
-Rest = new Restivus
-  useDefaultAuth: true
-  prettyJson: true
+WebApp.rawConnectHandlers.use "/api/#{config.callbackScriptName}", (req, res, next) ->
+  method = req.method
+  query = Url.parse(req.url, true).query
 
-Meteor.startup ->
-  Rest.addRoute config.callbackScriptName, {authRequired: false},
-    "#{config.callbackMethod}": ->
-      if config.debug
-        console.log 'Cloudpayments.restRoute', @queryParams, @bodyParams
+  console.log 'Cloudpayments.handler method & action', method, query.action
 
-      if @queryParams?.TransactionId?
-        params = _.omit @queryParams, ['__proto__']
-      else if @bodyParams?.TransactionId?
-        params = _.omit @bodyParams, ['__proto__']
-      else
-        params = {}
+  if method is 'POST'
+    chunksLength = 0
+    chunks = []
 
-      # payload = JSON.stringify(params)
-      # signature = PGSignature.make payload, config.secretKey
-      # console.log signature, payload, @request.headers, @request.body
+    body = await new Promise (resolve, reject) ->
+      req.on 'data', (chunk) ->
+        chunks.push(chunk)
+        chunksLength += chunk.length
+      req.on 'end', -> resolve Buffer.concat(chunks, chunksLength).toString('utf-8')
+      req.on 'error', reject
 
-      # if pg_sig isnt params.pg_sig
-      #   console.log 'Cloudpayments.restRoute invalid signature', pg_sig
-      #   return
-      #     statusCode: 403
-      #     body: 'Access restricted 403'
+    unless body
+      console.warn 'Cloudpayments.handler: Empty POST body'
+      res.writeHead 400
+      res.end()
+      return
 
-      switch @queryParams.action
-        when 'check'
-          response = Cloudpayments._onCheck?(params)
-        when 'pay'
-          response = Cloudpayments._onPay?(params)
-        when 'fail'
-          response = Cloudpayments._onFail?(params)
-        else
-          # Payment will be refunded
-          response = {code: 0}
+    payload = body
+    # console.log 'Cloudpayments.handler: POST payload', payload
+    if typeof req.headers['content-type'] is 'string' and req.headers['content-type'].indexOf('json') isnt -1
+      try
+        params = JSON.parse(body)
+      catch e
+        console.log 'Cloudpayments.handler: JSON.parse error', e
+        res.writeHead 400
+        res.end()
+        return
+    else
+      params = qs.parse payload
+  else
+    payload = Url.parse(req.url).query
+    unless payload
+      console.warn 'Cloudpayments.handler: Empty GET query'
+      res.writeHead 400
+      res.end()
+      return
+    params = Url.parse(req.url, true).query
 
-      unless response
-        response = {code: 20}
+  console.log 'Cloudpayments.handler: payload & params', payload, params
 
-      if config.debug
-        console.log 'Cloudpayments.restRoute.response', response
+  signature = Signature.make payload, config.secretKey
 
-      response
+  if signature isnt req.headers['content-hmac']
+    console.warn 'Cloudpayments.handler: Wrong request signature. Hack possible', {signature, 'content-hmac': req.headers['content-hmac']}
+    res.setHeader 'Content-Type', 'application/json'
+    res.writeHead 401
+    res.end()
+    return
 
-# WebApp.connectHandlers.use "/api/#{config.callbackScriptName}", (req, res, next) ->
-#   method = req.method
+  switch query.action
+    when 'check'
+      response = Cloudpayments._onCheck?(params)
+    when 'pay'
+      response = Cloudpayments._onPay?(params)
+    when 'fail'
+      response = Cloudpayments._onFail?(params)
+    else
+      # Payment will be refunded
+      response = {code: 0}
 
-#   if method is 'POST'
-#     chunksLength = 0
-#     chunks = []
-#     body = await new Promise (resolve, reject) ->
-#       req.on 'data', (chunk) ->
-#         chunks.push(chunk)
-#         chunksLength += chunk.length
-#       req.on 'end', -> resolve Buffer.concat(chunks, chunksLength).toString('utf-8')
-#       req.on 'error', reject
+  unless response
+    response = {code: 20}
+  
+  console.log 'Cloudpayments.handler: response', response
+
+  res.setHeader 'Content-Type', 'application/json'
+  res.writeHead response.statusCode or 200
+  res.end JSON.stringify(response)
+  

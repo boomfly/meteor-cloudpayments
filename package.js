@@ -8,6 +8,7 @@ Package.describe({
 
 
 Package.onUse((api) => {
+  api.use('webapp', 'server');
   api.use('underscore', 'server');
   api.use('ecmascript', 'server');
   api.use('coffeescript', 'server');
@@ -23,10 +24,4 @@ Package.onTest((api) => {
   api.use('boomfly:meteor-cloudpayments');
   // Specify the source code for the package tests.
   api.addFiles('test/test.coffee', 'server');
-});
-// This lets you use npm packages in your package:
-Npm.depends({
-  'sprintf-js': '1.1.1',
-  'xml-js': '1.6.11',
-  // 'js2xml': '1.0.8'
 });
