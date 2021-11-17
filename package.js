@@ -6,8 +6,8 @@ Package.describe({
   git: 'https://github.com/boomfly/meteor-cloudpayments'
 });
 
-
 Package.onUse((api) => {
+  api.use('modules', 'server');
   api.use('webapp', 'server');
   api.use('underscore', 'server');
   api.use('ecmascript', 'server');
