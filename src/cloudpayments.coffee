@@ -33,6 +33,11 @@ class Cloudpayments
   # Orders
   createOrder: (params) -> await @_request 'orders/create', params
 
+  # Payments
+  payWithToken: (params) -> await @_request 'payments/tokens/charge', params
+  refund: (params) -> await @_request 'payments/refund', params
+  cancel: (params) -> await @_request 'payments/void', params
+
   # Notifications
   getNotification: (type) -> await @_request "site/notifications/#{type}/get"
   updateNotification: (type, params) -> await @_request "site/notifications/#{type}/update", params
