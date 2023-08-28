@@ -175,11 +175,11 @@ class Cloudpayments
 
     switch query.action
       when 'check'
-        result = @_onCheck?(params)
+        result = await @_onCheck?(params)
       when 'pay'
-        result = @_onPay?(params)
+        result = await @_onPay?(params)
       when 'fail'
-        result = @_onFail?(params)
+        result = await @_onFail?(params)
       else
         # Payment will be refunded
         result = {code: 0}
