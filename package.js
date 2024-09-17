@@ -1,7 +1,7 @@
 Package.describe({
   // Short two-sentence summary
   summary: 'Meteor Cloudpayments integration',
-  version: '0.1.0',
+  version: '0.2.0',
   name: 'boomfly:meteor-cloudpayments',
   git: 'https://github.com/boomfly/meteor-cloudpayments'
 });

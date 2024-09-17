@@ -80,7 +80,7 @@ class Cloudpayments
 
   _request: (pathname, params, method = 'POST') ->
     {isTest, publicId, secretKey} = getConfig()
-    apiUrl = 'https://api.cloudpayments.ru'
+    apiUrl = 'https://api.tiptoppay.kz'
     options = {
       method
       headers: {
