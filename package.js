@@ -1,13 +1,13 @@
 Package.describe({
   // Short two-sentence summary
   summary: 'Meteor Cloudpayments integration',
-  version: '0.2.0',
+  version: '0.3.0',
   name: 'boomfly:meteor-cloudpayments',
   git: 'https://github.com/boomfly/meteor-cloudpayments'
 });
 
 Package.onUse((api) => {
-  api.use('modules', 'server');
+  // api.use('modules', 'server');
   api.use('webapp', 'server');
   api.use('underscore', 'server');
   api.use('ecmascript', 'server');
