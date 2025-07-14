@@ -120,7 +120,7 @@ class Cloudpayments
       res.writeHead code
       res.end message
 
-    console.log 'Cloudpayments.handler method', method, req.headers, req.url
+    # console.log 'Cloudpayments.handler method', method, req.headers, req.url
 
     if method is 'POST'
       chunksLength = 0
@@ -138,7 +138,7 @@ class Cloudpayments
         console.warn 'Cloudpayments.handler: Empty POST body'
         return response 400
 
-      console.log 'Cloudpayments.handler method', body
+      # console.log 'Cloudpayments.handler method', body
 
       payload = body
       if req.headers['content-type']?.indexOf('json') isnt -1
@@ -153,7 +153,7 @@ class Cloudpayments
         console.warn 'Cloudpayments.handler: Empty GET query'
         return response 400
 
-    console.log 'Cloudpayments.handler', payload, params
+    # console.log 'Cloudpayments.handler', payload, params
 
     signatureHeader = req.headers[SIGNATURE_HEADER_NAME]
 
@@ -187,7 +187,7 @@ class Cloudpayments
     unless result
       result = {code: 20}
 
-    console.log 'Cloudpayments.handler result', result
+    # console.log 'Cloudpayments.handler result', result
 
     return response 200, JSON.stringify(result)
 
