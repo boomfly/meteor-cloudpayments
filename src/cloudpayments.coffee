@@ -22,17 +22,22 @@ export Cloudpayments = {
   onCheck: (cb) -> _onCheckCallback = cb
   onFail: (cb) -> _onFailCallback = cb
   onGetClient: (cb) -> _onGetClientCallback = cb
+
+  config: (cfg) ->
+    config = getConfig()
+    return config unless cfg
+    Object.assign(config, cfg)
 }
 
-defaultClient = new CloudpaymentsClient({
+export defaultClient = new CloudpaymentsClient({
   publicId: getConfig().publicId
   secretKey: getConfig().secretKey
 })
 
 router = new WebApp.express.Router()
 
-router.use('/', (req, res) ->
-  Log.info({message: 'Cloudpayments.handler', method: req.method, headers: req.headers, url: req.url})
+handleRequest = (req, res, userId = null) ->
+  Log.info({message: 'Cloudpayments.handler', method: req.method, headers: req.headers, url: req.url, userId})
   method = req.method
   url = new URL(Meteor.absoluteUrl(req.url))
   query = Object.fromEntries(url.searchParams)
@@ -66,13 +71,10 @@ router.use('/', (req, res) ->
       params = JSON.parse(body)
     else
       params = Object.fromEntries(new URLSearchParams(body))
-    
-    merchantId = query.merchantId
   else
     url = new URL(Meteor.absoluteUrl(req.url))
     payload = url.searchParams.toString()
-    {merchantId, ...restQuery} = query
-    params = restQuery
+    params = query
     unless payload
       Log.warn({message: 'Cloudpayments.handler: Empty GET query'})
       return response 400
@@ -85,10 +87,14 @@ router.use('/', (req, res) ->
     Log.warn({message: 'Cloudpayments.handler: Request without signature', [SIGNATURE_HEADER_NAME]: signatureHeader})
     return response 401
 
-  if merchantId and _onGetClientCallback
-    client = await _onGetClientCallback(merchantId)
-  else
-    client = defaultClient
+  # Если userId передан в URL (роут с :userId), используем его для получения клиента
+  # Иначе используем дефолтный клиент
+  client = defaultClient
+  if userId and _onGetClientCallback
+    client = await _onGetClientCallback(userId)
+    unless client
+      Log.warn({message: 'Cloudpayments.handler: Client not found for userId', userId})
+      client = defaultClient
 
   signature = client._sign(payload)
 
@@ -111,6 +117,16 @@ router.use('/', (req, res) ->
     result = {code: 20}
 
   return response 200, JSON.stringify(result)
+
+# Роут с userId лэндлорда (должен быть первым, чтобы не перехватывался дефолтным)
+router.use('/:userId', (req, res) ->
+  userId = req.params.userId
+  handleRequest(req, res, userId)
+)
+
+# Дефолтный роут (для ордеров без персональных credentials)
+router.use('/', (req, res) ->
+  handleRequest(req, res)
 )
 
 Meteor.startup ->

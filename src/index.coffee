@@ -1,7 +1,8 @@
 import {CloudpaymentsClient} from './client'
-import {Cloudpayments} from './cloudpayments'
+import {Cloudpayments, defaultClient} from './cloudpayments'
 
 export {
   CloudpaymentsClient,
-  Cloudpayments
+  Cloudpayments,
+  defaultClient
 }
