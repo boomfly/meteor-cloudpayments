@@ -17,6 +17,11 @@ _onCheckCallback = null
 _onFailCallback = null
 _onGetClientCallback = null
 
+export defaultClient = new CloudpaymentsClient({
+  publicId: getConfig().publicId
+  secretKey: getConfig().secretKey
+})
+
 export Cloudpayments = {
   onPay: (cb) -> _onPayCallback = cb
   onCheck: (cb) -> _onCheckCallback = cb
@@ -27,12 +32,13 @@ export Cloudpayments = {
     config = getConfig()
     return config unless cfg
     Object.assign(config, cfg)
+  
+  # Прокси-методы для defaultClient
+  payWithToken: (params) -> defaultClient.payWithToken(params)
+  refund: (params) -> defaultClient.refund(params)
+  cancel: (params) -> defaultClient.cancel(params)
+  createOrder: (params) -> defaultClient.createOrder(params)
 }
-
-export defaultClient = new CloudpaymentsClient({
-  publicId: getConfig().publicId
-  secretKey: getConfig().secretKey
-})
 
 router = new WebApp.express.Router()
 
