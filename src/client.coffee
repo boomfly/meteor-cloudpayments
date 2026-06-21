@@ -16,6 +16,7 @@ export class CloudpaymentsClient
 
   # Payments
   payWithToken: (params) -> await @_request 'payments/tokens/charge', params
+  find: (params) -> await @_request 'payments/find', params
   refund: (params) -> await @_request 'payments/refund', params
   cancel: (params) -> await @_request 'payments/void', params
 
