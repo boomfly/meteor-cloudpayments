@@ -96,11 +96,14 @@ handleRequest = (req, res, userId = null) ->
   # Если userId передан в URL (роут с :userId), используем его для получения клиента
   # Иначе используем дефолтный клиент
   client = defaultClient
+  # Чьим секретом сверяется подпись: userId клиента из onGetClient, null — дефолтный клиент.
+  accountUserId = null
   if userId and _onGetClientCallback
-    client = await _onGetClientCallback(userId)
-    unless client
-      Log.warn({message: 'Cloudpayments.handler: Client not found for userId', userId})
-      client = defaultClient
+    userClient = await _onGetClientCallback(userId)
+    Log.warn({message: 'Cloudpayments.handler: Client not found for userId', userId}) unless userClient
+    if userClient
+      client = userClient
+      accountUserId = userId
 
   signature = client._sign(payload)
 
@@ -108,13 +111,17 @@ handleRequest = (req, res, userId = null) ->
     Log.warn({message: 'Cloudpayments.handler: Wrong request signature. Hack possible', signature, [SIGNATURE_HEADER_NAME]: signatureHeader})
     return response 401
 
+  # Второй аргумент обработчика — учётка, чьим секретом сверена подпись. Секрет лендлорда подписывает любой
+  # InvoiceId, поэтому обработчик обязан сверить accountUserId с учёткой ордера.
+  context = {accountUserId}
+
   switch query.action
     when 'check'
-      result = await _onCheckCallback?(params)
+      result = await _onCheckCallback?(params, context)
     when 'pay'
-      result = await _onPayCallback?(params)
+      result = await _onPayCallback?(params, context)
     when 'fail'
-      result = await _onFailCallback?(params)
+      result = await _onFailCallback?(params, context)
     else
       # Payment will be refunded
       result = {code: 0}
