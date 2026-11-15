@@ -105,10 +105,9 @@ handleRequest = (req, res, userId = null) ->
       client = userClient
       accountUserId = userId
 
-  signature = client._sign(payload)
-
-  if signature isnt signatureHeader
-    Log.warn({message: 'Cloudpayments.handler: Wrong request signature. Hack possible', signature, [SIGNATURE_HEADER_NAME]: signatureHeader})
+  # Верная подпись в лог не пишется: по ней из лога подписывался бы тот же запрос.
+  unless client.verifySignature(payload, signatureHeader)
+    Log.warn({message: 'Cloudpayments.handler: Wrong request signature. Hack possible', [SIGNATURE_HEADER_NAME]: signatureHeader})
     return response 401
 
   # Второй аргумент обработчика — учётка, чьим секретом сверена подпись. Секрет лендлорда подписывает любой

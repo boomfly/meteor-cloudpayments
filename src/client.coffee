@@ -45,3 +45,9 @@ export class CloudpaymentsClient
     await response.json()
 
   _sign: (message) -> crypto.createHmac('sha256', @_secretKey).update(message).digest('base64')
+
+  # Сверка подписи вебхука за постоянное время (timingSafeEqual требует равной длины — иная длина уже не подпись).
+  verifySignature: (message, signature) ->
+    expected = Buffer.from(@_sign(message))
+    actual = Buffer.from(String(signature ? ''))
+    expected.length is actual.length and crypto.timingSafeEqual(expected, actual)
